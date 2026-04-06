@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Financeiro Corporativo Premium</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+  <div class="bg-glow glow-1"></div>
+  <div class="bg-glow glow-2"></div>
+
+  <div class="app-shell">
+    <aside class="sidebar glass">
+      <div class="brand">
+        <div class="brand-mark">FC</div>
+        <div>
+          <h1>Financeiro Corporativo</h1>
+          <p>Controle familiar com visual de contabilidade premium</p>
+        </div>
+      </div>
+
+      <nav class="nav-list">
+        <button class="nav-btn active" data-tab="dashboard">Dashboard</button>
+        <button class="nav-btn" data-tab="pessoas">Pessoas</button>
+        <button class="nav-btn" data-tab="recebimentos">Recebimentos</button>
+        <button class="nav-btn" data-tab="contas">Contas</button>
+        <button class="nav-btn" data-tab="recorrentes">Recorrentes</button>
+        <button class="nav-btn" data-tab="metas">Metas</button>
+        <button class="nav-btn" data-tab="backup">Backup</button>
+      </nav>
+
+      <section class="side-card glass-soft">
+        <span class="eyebrow">Recursos</span>
+        <h3>Nível empresa</h3>
+        <ul>
+          <li>Pessoas responsáveis por contas e salários</li>
+          <li>Contas recorrentes infinitas</li>
+          <li>Parcelas automáticas</li>
+          <li>Alertas de vencimento</li>
+          <li>Comprovantes de pagamento</li>
+          <li>Exportação CSV e PDF</li>
+        </ul>
+      </section>
+
+      <section class="side-card glass-soft compact">
+        <span class="eyebrow">Atalho</span>
+        <button class="btn danger full" id="resetAllBtn" type="button">Apagar tudo</button>
+      </section>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar glass">
+        <div>
+          <span class="eyebrow">Painel</span>
+          <h2 id="pageTitle">Dashboard</h2>
+          <p id="monthLabel">Visão do mês</p>
+        </div>
+        <div class="topbar-actions">
+          <label class="inline-field">
+            <span>Mês</span>
+            <input type="month" id="monthFilter">
+          </label>
+          <label class="inline-field">
+            <span>Pessoa</span>
+            <select id="personFilter">
+              <option value="all">Todas</option>
+            </select>
+          </label>
+          <button class="btn secondary" id="exportCsvBtn" type="button">Exportar CSV</button>
+          <button class="btn" id="exportPdfBtn" type="button">Exportar PDF</button>
+        </div>
+      </header>
+
+      <section id="dashboard" class="tab active">
+        <div class="stats-grid">
+          <article class="stat-card glass">
+            <span>Recebimentos</span>
+            <strong id="metricIncome">R$ 0,00</strong>
+            <small>Total do mês</small>
+          </article>
+          <article class="stat-card glass">
+            <span>Contas lançadas</span>
+            <strong id="metricBills">R$ 0,00</strong>
+            <small>Total do mês</small>
+          </article>
+          <article class="stat-card glass">
+            <span>Em aberto</span>
+            <strong id="metricOpen">R$ 0,00</strong>
+            <small>A pagar</small>
+          </article>
+          <article class="stat-card glass accent">
+            <span>Previsão de saldo</span>
+            <strong id="metricForecast">R$ 0,00</strong>
+            <small>Recebimentos - em aberto</small>
+          </article>
+          <article class="stat-card glass">
+            <span>Pago</span>
+            <strong id="metricPaid">R$ 0,00</strong>
+            <small>Quitado no mês</small>
+          </article>
+          <article class="stat-card glass">
+            <span>Meta do mês</span>
+            <strong id="metricGoal">--</strong>
+            <small id="goalProgressLabel">Sem meta definida</small>
+          </article>
+        </div>
+
+        <div class="alerts-grid">
+          <div class="alert-card danger" id="overdueAlert">Nenhuma conta vencida.</div>
+          <div class="alert-card warning" id="todayAlert">Nenhuma conta vence hoje.</div>
+          <div class="alert-card info" id="goalAlert">Sem meta definida para este mês.</div>
+        </div>
+
+        <div class="dashboard-grid">
+          <section class="panel glass">
+            <div class="panel-head">
+              <div>
+                <span class="eyebrow">Financeiro</span>
+                <h3>Entradas x saídas</h3>
+              </div>
+            </div>
+            <canvas id="barChart"></canvas>
+          </section>
+
+          <section class="panel glass">
+            <div class="panel-head">
+              <div>
+                <span class="eyebrow">Contas</span>
+                <h3>Status geral</h3>
+              </div>
+            </div>
+            <canvas id="doughnutChart"></canvas>
+          </section>
+
+          <section class="panel glass">
+            <div class="panel-head row-between">
+              <div>
+                <span class="eyebrow">Resumo</span>
+                <h3>Por pessoa</h3>
+              </div>
+            </div>
+            <div id="personSummary" class="stack-list"></div>
+          </section>
+
+          <section class="panel glass wide">
+            <div class="panel-head">
+              <div>
+                <span class="eyebrow">Agenda</span>
+                <h3>Próximos vencimentos</h3>
+              </div>
+            </div>
+            <div id="upcomingBills" class="stack-list"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="pessoas" class="tab">
+        <div class="two-col">
+          <section class="panel glass">
+            <div class="panel-head">
+              <div>
+                <span class="eyebrow">Cadastro</span>
+                <h3>Nova pessoa</h3>
+              </div>
+            </div>
+            <form id="personForm" class="form-grid">
+              <label>Nome
+                <input name="name" required placeholder="Ex: Fhellype ou Clara">
+              </label>
+              <label>Cor de destaque
+                <input name="color" type="color" value="#57d6ff">
+              </label>
+              <label>Observação
+                <input name="note" placeholder="Ex: esposa, titular da casa, etc.">
+              </label>
+              <button class="btn" type="submit">Salvar pessoa</button>
+            </form>
+          </section>
+
+          <section class="panel glass">
+            <div class="panel-head">
+              <div>
+                <span class="eyebrow">Equipe</span>
+                <h3>Pessoas cadastradas</h3>
+              </div>
+            </div>
+            <div id="peopleList" class="stack-list"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="recebimentos" class="tab">
+        <div class="two-col">
+          <section class="panel glass">
+            <div class="panel-head">
+              <div>
+                <span class="eyebrow">Entrada</span>
+                <h3>Novo recebimento</h3>
+              </div>
+            </div>
+            <form id="incomeForm" class="form-grid">
+              <label>Descrição
+                <input name="description" required placeholder="Ex: salário, freela, comissão">
+              </label>
+              <label>Valor
+                <input name="amount" type="number" min="0.01" step="0.01" required placeholder="0,00">
+              </label>
+              <label>Data
+                <input name="date" type="date" required>
+              </label>
+              <label>Pessoa
+                <select name="personId" class="person-select" data-kind="income"></select>
+              </label>
+              <label>Categoria
+                <select name="category">
+                  <option>Salário</option>
+                  <option>Freelance</option>
+                  <option>Comissão</option>
+                  <option>Reembolso</option>
+                  <option>Outros</option>
+                </select>
+              </label>
+              <label>Observação
+                <input name="notes" placeholder="Detalhe opcional">
+              </label>
+              <button class="btn" type="submit">Salvar recebimento</button>
+            </form>
+          </section>
+
+          <section class="panel glass">
+            <div class="panel-head row-between">
+              <div>
+                <span class="eyebrow">Lista</span>
+                <h3>Recebimentos do mês</h3>
+              </div>
+              <input id="incomeSearch" class="search" placeholder="Buscar recebimento">
+            </div>
+            <div id="incomeList" class="stack-list"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="contas" class="tab">
+        <div class="two-col">
+          <section class="panel glass">
+            <div class="panel-head">
+              <div>
+                <span class="eyebrow">Despesa</span>
+                <h3>Nova conta</h3>
+              </div>
+            </div>
+            <form id="billForm" class="form-grid">
+              <label>Descrição
+                <input name="description" required placeholder="Ex: aluguel, luz, internet">
+              </label>
+              <label>Valor total
+                <input name="amount" type="number" min="0.01" step="0.01" required placeholder="0,00">
+              </label>
+              <label>Vencimento
+                <input name="dueDate" type="date" required>
+              </label>
+              <label>Categoria
+                <select name="category">
+                  <option>Moradia</option>
+                  <option>Energia</option>
+                  <option>Água</option>
+                  <option>Internet</option>
+                  <option>Mercado</option>
+                  <option>Cartão</option>
+                  <option>Saúde</option>
+                  <option>Transporte</option>
+                  <option>Outros</option>
+                </select>
+              </label>
+              <label>Pessoa responsável
+                <select name="personId" class="person-select" data-kind="bill"></select>
+              </label>
+              <label>Parcelas mensais
+                <input name="installments" type="number" min="1" step="1" value="1">
+              </label>
+              <label>Método de pagamento
+                <select name="paymentMethod">
+                  <option>Pix</option>
+                  <option>Débito</option>
+                  <option>Crédito</option>
+                  <option>Dinheiro</option>
+                  <option>Boleto</option>
+                  <option>Transferência</option>
+                </select>
+              </label>
+              <label>Observação
+                <input name="notes" placeholder="Detalhes da conta">
+              </label>
+              <small class="muted">Se colocar mais de 1 parcela, o sistema cria automaticamente os lançamentos mensais.</small>
+              <button class="btn" type="submit">Salvar conta</button>
+            </form>
+          </section>
+
+          <section class="panel glass">
+            <div class="panel-head row-between wrap">
+              <div>
+                <span class="eyebrow">Contas</span>
+                <h3>Contas do mês</h3>
+              </div>
+              <div class="filter-row">
+                <input id="billSearch" class="search" placeholder="Buscar conta">
+                <select id="statusFilter" class="mini-select">
+                  <option value="all">Todos os status</option>
+                  <option value="open">Em aberto</option>
+                  <option value="today">Vence hoje</option>
+                  <option value="overdue">Vencidas</option>
+                  <option value="paid">Pagas</option>
+                </select>
+              </div>
+            </div>
+            <div id="billList" class="stack-list"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="recorrentes" class="tab">
+        <div class="two-col">
+          <section class="panel glass">
+            <div class="panel-head">
+              <div>
+                <span class="eyebrow">Automação</span>
+                <h3>Nova conta recorrente infinita</h3>
+              </div>
+            </div>
+            <form id="recurringForm" class="form-grid">
+              <label>Descrição
+                <input name="description" required placeholder="Ex: condomínio">
+              </label>
+              <label>Valor
+                <input name="amount" type="number" min="0.01" step="0.01" required placeholder="0,00">
+              </label>
+              <label>Dia do vencimento
+                <input name="day" type="number" min="1" max="28" required value="10">
+              </label>
+              <label>Categoria
+                <select name="category">
+                  <option>Moradia</option>
+                  <option>Energia</option>
+                  <option>Água</option>
+                  <option>Internet</option>
+                  <option>Mercado</option>
+                  <option>Cartão</option>
+                  <option>Saúde</option>
+                  <option>Transporte</option>
+                  <option>Outros</option>
+                </select>
+              </label>
+              <label>Pessoa responsável
+                <select name="personId" class="person-select" data-kind="recurring"></select>
+              </label>
+              <label>Método de pagamento
+                <select name="paymentMethod">
+                  <option>Pix</option>
+                  <option>Débito</option>
+                  <option>Crédito</option>
+                  <option>Dinheiro</option>
+                  <option>Boleto</option>
+                  <option>Transferência</option>
+                </select>
+              </label>
+              <button class="btn" type="submit">Criar recorrente</button>
+            </form>
+          </section>
+
+          <section class="panel glass">
+            <div class="panel-head">
+              <div>
+                <span class="eyebrow">Recorrência</span>
+                <h3>Contas recorrentes</h3>
+              </div>
+            </div>
+            <div id="recurringList" class="stack-list"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="metas" class="tab">
+        <div class="two-col">
+          <section class="panel glass">
+            <div class="panel-head">
+              <div>
+                <span class="eyebrow">Planejamento</span>
+                <h3>Meta mensal</h3>
+              </div>
+            </div>
+            <form id="goalForm" class="form-grid">
+              <label>Mês
+                <input name="month" type="month" required>
+              </label>
+              <label>Meta de economia
+                <input name="target" type="number" min="0" step="0.01" required placeholder="0,00">
+              </label>
+              <label>Observação
+                <input name="note" placeholder="Ex: reserva, viagem, bebê">
+              </label>
+              <button class="btn" type="submit">Salvar meta</button>
+            </form>
+          </section>
+
+          <section class="panel glass">
+            <div class="panel-head">
+              <div>
+                <span class="eyebrow">Histórico</span>
+                <h3>Metas salvas</h3>
+              </div>
+            </div>
+            <div id="goalList" class="stack-list"></div>
+          </section>
+        </div>
+      </section>
+
+      <section id="backup" class="tab">
+        <div class="two-col">
+          <section class="panel glass">
+            <div class="panel-head">
+              <div>
+                <span class="eyebrow">Segurança</span>
+                <h3>Backup e restauração</h3>
+              </div>
+            </div>
+            <div class="backup-actions">
+              <button class="btn" id="backupBtn" type="button">Baixar backup JSON</button>
+              <label class="btn secondary upload-btn" for="restoreInput">Restaurar backup</label>
+              <input id="restoreInput" type="file" accept="application/json" hidden>
+              <button class="btn secondary" id="clearMonthBtn" type="button">Limpar só o mês atual</button>
+            </div>
+            <div class="note-box">
+              Dica: esse sistema agora vem sem salário de exemplo. Se ainda aparecer dado antigo, clique em <strong>Apagar tudo</strong> ou use <strong>Restaurar backup</strong>.
+            </div>
+          </section>
+
+          <section class="panel glass">
+            <div class="panel-head">
+              <div>
+                <span class="eyebrow">Resumo</span>
+                <h3>Base cadastrada</h3>
+              </div>
+            </div>
+            <div id="backupSummary" class="summary-box"></div>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="modal" class="modal hidden">
+    <div class="modal-card glass">
+      <div class="panel-head row-between">
+        <div>
+          <span class="eyebrow">Editar</span>
+          <h3 id="modalTitle">Editar lançamento</h3>
+        </div>
+        <button class="icon-btn" id="closeModalBtn" type="button">✕</button>
+      </div>
+      <form id="modalForm" class="form-grid"></form>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
